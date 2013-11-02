@@ -1,7 +1,7 @@
 # Chrome packaged apps 翻译 #
 ### Codelab at DevFest 2013 Season ###
 
-翻译后的文件: `chrome-packaged-apps-codelab-zh-cn.md`
+翻译后的文件: `chrome-packaged-apps-codelab-zh-cn.md`  
 原文链接: [http://goo.gl/49uqfK](http://goo.gl/49uqfK)
 
 **术语表** 和 **翻译规范** 还未指定
