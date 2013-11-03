@@ -5,7 +5,7 @@
 
 
 ## 介绍 ##
---------------------------------------------------------------------------------------
+------------------------------------------------------------------
 欢迎来到 chrome 应用 的开发练习！这是一个自学课程(self-paced codelab)，在这里你将完成 chrome 应用 开发的基本练习并学习 API 中的一部分。
 你可以在 [官方文档](http://developer.chrome.com/apps/about_apps.html) 中找到本教程中大部分概念的详细描述。之后的每一个练习环节都会包含该练习所用到的 API 文档链接。
 
@@ -28,7 +28,7 @@
 
 
 ## 准备工作 ##
---------------------------------------------------------------------------------------
+------------------------------------------------------------------
 本课程假定你已具备 web 编程的基础知识。你应该已经知道基本 HTML 和 CSS，并且你应该熟悉 javascript。
 
 你应该安装了 Chrome Dev。在 chrome 的地址栏中输入 `chrome://version` 来查看你的 **"Google Chrome" 浏览器的版本为 28** 或者更高。如果不是，请根据此链接的引导操作：[https://www.google.com/intl/en/chrome/browser/index.html?extra=devchannel#eula](https://www.google.com/intl/en/chrome/browser/index.html?extra=devchannel#eula)
@@ -38,7 +38,7 @@
 如果你真的很想使用 Chrome 27，请注意第 3 步中的通知是无法使用的。
 
 ## 如何使用本资料 ##
---------------------------------------------------------------------------------------
+------------------------------------------------------------------
 新建一个文件夹。每一步的练习都建立在之前的练习成果之上。每个练习都有一个参考时间，如果你的练习时间超过了参考时间并想进入下一阶段的练习，每一步都会有 “cheat” 链接，通过这个链接你可以获取从上一步相关代码。(from the previous step.)
 
 下载所有的练习代码：[http://goo.gl/KJIihd](http://goo.gl/KJIihd)  
@@ -47,7 +47,7 @@
 
 
 ## 第 1 步 - 创建并运行一个最小的应用 ##
---------------------------------------------------------------------------------------
+------------------------------------------------------------------
 目标：掌握开发流程  
 完成本练习的建议时间：10 分钟
 
@@ -63,26 +63,26 @@
 manifest.json:  
 ```
 {
- "manifest_version": 2,
- "name": "I/O Codelab",
- "version": "1",
- "permissions": [],
- "app": {
-   "background": {
-     "scripts": ["background.js"]
-   }
- },
- "minimum_chrome_version": "28"
+  "manifest_version": 2,
+  "name": "I/O Codelab",
+  "version": "1",
+  "permissions": [],
+  "app": {
+    "background": {
+      "scripts": ["background.js"]
+    }
+  },
+  "minimum_chrome_version": "28"
 }
 ```
 
 background.js:  
 ```
 chrome.app.runtime.onLaunched.addListener(function() {
- chrome.app.window.create('index.html', {
-   id: 'main',
-   bounds: { width: 620, height: 500 }
- });
+  chrome.app.window.create('index.html', {
+    id: 'main',
+    bounds: { width: 620, height: 500 }
+  });
 });
 ```
 
@@ -91,10 +91,10 @@ index.html:
 <!DOCTYPE html>
 <html>
 <head>
-   <meta charset="utf-8">
+    <meta charset="utf-8">
 </head>
 <body>
-   <h1>Hello, let's code!</h1>
+    <h1>Hello, let's code!</h1>
 </body>
 </html>
 ```
@@ -124,7 +124,7 @@ index.html:
 
 
 ## 第 2 步 - 引入 ToDoMVC 应用并使之适应 Chrome(Import and adapt ToDoMVC app) ##
---------------------------------------------------------------------------------------
+------------------------------------------------------------------
 想从这一步重新开始？可以在 solution_for_step1 子目录下找到之前练习的代码！
 
 目标：  
@@ -154,15 +154,13 @@ index.html:42
 
 1. 让我们通过创建应用的 [CSP compliant](http://developer.chrome.com/apps/contentSecurityPolicy.html) 来修复这个错误。引起 CSP non-compliances 的一个常见原因是内联的 Javascript，比如 DOM 属性上的事件处理（`<button onclick=''>`）以及 HTML 中的 `<script>` 标签。解决此问题的方法很简单：只要把那些内联的内容移动到新的文件中：
     * a. 编辑 `index.html` 并把内联的 Javascript 移动到一个新文件 `js/bootstrap.js`:  
-    把
     ```
+    <!--
     <script>
         // Bootstrap app data
         window.app = {}; 
     </script>
-    ```
-    改为
-    ```
+    -->
     <script src="js/bootstrap.js"></script>
     ```
     * b. 创建 `js/bootstrap.js`，内容为：
@@ -181,3 +179,219 @@ Chrome 应用不支持 LocalStorage。为什么呢？因为 LocalStorage 是同�
 
 Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了某些时候 *对象 -> 字符串 -> 对象* 的序列化过程所造成的代价。
 
+为了修复刚才的问题，我们需要将 localStorage 转换为 chrome.storage.local。这需要许多步骤，不过这些步骤对于 API 调用和修复 ToDoMVC 异步支持的改动都很小(but they are all small changes to the API calls or fixes on the ToDoMVC async support)。
+
+**注意**：修改 ToDoMVC 中所有用到 localStorage 的地方是很耗时的而且容易出错，尽管这对于你的学习很必要。为了最大化你学习的乐趣，我们非常建议你：  
+* a. 看一下下方代码的改动。确认你是否能够理解它们，如果有问题请询问助教。
+* b. **复制 cheat_code/solution_for_step_2 下的文件并进入下一步练习**。我们已经搞定了下面的步骤，以便你继续学习。( We've kept all the steps below for learning purposes)
+
+1. 在 `manifest.json` 中，加入 "storage" 权限：
+   
+   ```
+   ···
+     "permissions": ["storage"],
+   ···
+   ```
+
+2. 在 `store.js` 中，修复构造器：
+
+   ```
+   function Store(name, callback) {
+     var data;
+     var dbName;
+   
+     callback = callback || function() {};
+   
+     dbName = this._dbName = name;
+   
+     /* if (!localStorage[dbName]) {
+       data = {
+         todos: []
+       };
+       localStorage[dbName] = JSON.stringify(data);
+     }
+   
+     callback.call(this, JSON.parse(localStorage[dbName])); */
+   
+     chrome.storage.local.get(dbName, function(storage) {
+       if ( dbName in storage ) {
+         callback.call(this, storage[dbName].todos);
+       } else {
+         storage = {};
+         storage[dbName] = { todos: [] };
+         chrome.storage.local.set( storage, function() {
+           callback.call(this, storage[dbName].todos);
+         }.bind(this));
+       }
+     }.bind(this));
+   
+   }
+   ```
+
+3. 修复 find 方法：
+
+   ```
+   Store.prototype.find = function (query, callback) {
+     if (!callback) {
+       return;
+     }
+
+     /* var todos = JSON.parse(localStorage[this._dbName]).todos;
+
+     callback.call(this, todos.filter(function (todo) {
+       for (var q in query) {
+         return query[q] === todo[q];
+       }
+     })); */
+
+     chrome.storage.local.get(this._dbName, function(storage) {
+       var todos = storage[this._dbName].todos.filter(
+         function (todo) {
+           for (var q in query) {
+             return query[q] === todo[q];
+           }
+         });
+       callback.call(this, todos);
+     }.bind(this));
+   };
+   ```
+
+4. 修复 findAll 方法：
+
+   ```
+   Store.prototype.findAll = function (callback) {
+     callback = callback || function () {};
+     /* callback.call(this, JSON.parse(localStorage[this._dbName]).todos); */
+   
+     chrome.storage.local.get(this._dbName, function(storage) {
+       callback.call(this, storage[this._dbName].todos);
+     }.bind(this));
+   };
+   ```
+
+5. save 方法提出了新的挑战：因为它依赖了两个异步操作（get 和 set），这两个操作每次都会操作整个 JSON 存储，在对一个以上的 ToDos 进行任何一种批量操作都会造成称之为 [Read-After-Write](http://en.wikipedia.org/wiki/Hazard_(computer_architecture)#Read_After_Write_.28RAW.29) 的数据冒险(数据冲突)。有一些办法可以解决这个问题，但是我们会利用之后的机会来稍稍重构它(代码)，通过使用一个含有 ToDo id 的数组来进行单次更新。请注意如果我们使用像索引数据库这样的更加合适的数据存储，就不会发生这样的问题了。不过我们正在努力减少转换工作(minimize the conversion effort)：
+
+   ```
+   Store.prototype.save = function (id, updateData, callback) {
+
+     chrome.storage.local.get(this._dbName, function(storage) {
+
+       /* var data = JSON.parse(localStorage[this._dbName]); */
+       var data = storage[this._dbName];
+
+       var todos = data.todos;
+       
+       callback = callback || function () {};
+       
+       // If an ID was actually given, find the item and update each property
+       if ( typeof id !== 'object'  || Array.isArray(id) ) {
+         var ids = [].concat( id );
+         ids.forEach(function(id) {
+           for (var i = 0; i < todos.length; i++) {
+             if (todos[i].id == id) {
+               for (var x in updateData) {
+                 todos[i][x] = updateData[x];
+               }
+             }
+           }
+         });
+
+         /* localStorage[this._dbName] = JSON.stringify(data);
+         callback.call(this, JSON.parse(localStorage[this._dbName]).todos); */
+         chrome.storage.local.set(storage, function() {
+           chrome.storage.local.get(this._dbName, function(storage) {
+             callback.call(this, storage[this._dbName].todos);
+           }.bind(this));
+         }.bind(this));
+
+       } else {
+         callback = updateData;
+         
+         updateData = id;
+         
+         // Generate an ID
+         updateData.id = new Date().getTime();
+         
+         todos.push(updateData);
+         /* localStorage[this._dbName] = JSON.stringify(data);
+         callback.call(this, [updateData]); */
+
+         chrome.storage.local.set(storage, function() {
+           callback.call(this, [updateData]);
+         }.bind(this));
+
+       }
+     }.bind(this));
+   };
+   ```
+6. 我们也需要改写客户端的 save 方法，使它能够在一次调用中包含所有的 ID。(it can include all IDs in one call)
+
+   * a. `controller.js` 中 toggleComplete 的 update 方法：
+
+     ```
+     Controller.prototype.toggleComplete = function (ids, checkbox, silent) {
+       var completed = checkbox.checked ? 1 : 0;
+
+       this.model.update(ids, { completed: completed }, function () {
+         if ( ids.constructor != Array ) {
+           ids = [ ids ];
+         }
+
+         ids.forEach( function(id) {
+
+           var listItem = $$('[data-id="' + id + '"]');
+           
+           if (!listItem) {
+             return;
+           }
+
+           listItem.className = completed ? 'completed' : '';
+           
+           // In case it was toggled from an event and not by clicking the checkbox
+           listItem.querySelector('input').checked = completed;
+         });
+
+         if (!silent) {
+           this._filter();
+         }
+       }.bind(this));
+     };
+     ```
+
+   * b. `controller.js` 中 toggleAll 的 update 方法：
+
+     ```
+     Controller.prototype.toggleAll = function (e) {
+       var completed = e.target.checked ? 1 : 0;
+       var query = 0;
+
+       if (completed === 0) {
+         query = 1;
+       }
+
+       this.model.read({ completed: query }, function (data) {
+         var ids = [];
+         data.forEach(function (item) {
+           ids.push(item.id);
+           /* this.toggleComplete(item.id, e.target, true); */
+         }.bind(this));
+         this.toggleComplete(ids, e.target, false);
+       }.bind(this));
+       
+       this._filter();
+     };
+     ```
+7. 现在让我们来修复 ToDoMVC 代码中的两个小 bug，当使用异步存储时它们就会出现：
+
+   * c. 在 `controller.js` 中的 removeItem 方法，把调用 _filter 的语句移动到回调函数里：
+
+     ```
+     Controller.prototype.removeItem = function (id) {
+       this.model.remove(id, function () {
+         this.$todoList.removeChild($$('[data-id="' + id + '"]'));
+         this._filter();
+       }.bind(this));
+
+       /* this._filter(); */
+     };
+     ```
