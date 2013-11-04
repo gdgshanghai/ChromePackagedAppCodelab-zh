@@ -10,17 +10,17 @@
 
 ## 目前进度(按目录) ##
 
-1. Introduction *(doing sorcerer-ma)*
-2. Prerequisites *(doing sorcerer-ma)*
-3. How to use this material *(doing sorcerer-ma)*
-4. Step 1 - Create and run a minimum app *(doing sorcerer-ma)*
-    * How to debug a Chrome packaged app *(doing sorcerer-ma)*
-5. Step 2 - Import and adapt ToDoMVC app *(doing sorcerer-ma)*
-    * CSP Compliance *(doing sorcerer-ma)*
-    * Converting from localStorage to chrome.storage.local *(doing sorcerer-ma)*
-6. Step 3 - Alarms and notifications: remind yourself of open To Do's
-    * Part 1 - Alarms:
-    * Part 2 - Notifications:
+1. Introduction *(done - sorcerer-ma)* **(need review)**
+2. Prerequisites *(done - sorcerer-ma)* **(need review)**
+3. How to use this material *(done - sorcerer-ma)* **(need review)**
+4. Step 1 - Create and run a minimum app *(done - sorcerer-ma)* **(need review)**
+    * How to debug a Chrome packaged app *(done - sorcerer-ma)* **(need review)**
+5. Step 2 - Import and adapt ToDoMVC app *(done - sorcerer-ma)* **(need review)**
+    * CSP Compliance *(done - sorcerer-ma)* **(need review)**
+    * Converting from localStorage to chrome.storage.local *(done - sorcerer-ma)* **(need review)**
+6. Step 3 - Alarms and notifications: remind yourself of open To Do's *(doing - sorcerer-ma)*
+    * Part 1 - Alarms: *(doing - sorcerer-ma)*
+    * Part 2 - Notifications: *(doing - sorcerer-ma)*
 7. Step 4 - Parse URLs and open then in a Webview
 8. Step 5 - Add images from the web
 9. Step 6 - Export ToDo's to the filesystem
