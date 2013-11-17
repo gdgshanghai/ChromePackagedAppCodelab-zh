@@ -18,10 +18,10 @@
 5. Step 2 - Import and adapt ToDoMVC app *(done - sorcerer-ma)* **(need review)**
     * CSP Compliance *(done - sorcerer-ma)* **(need review)**
     * Converting from localStorage to chrome.storage.local *(done - sorcerer-ma)* **(need review)**
-6. Step 3 - Alarms and notifications: remind yourself of open To Do's *(doing - sorcerer-ma)*
-    * Part 1 - Alarms: *(doing - sorcerer-ma)*
-    * Part 2 - Notifications: *(doing - sorcerer-ma)*
-7. Step 4 - Parse URLs and open then in a Webview
+6. Step 3 - Alarms and notifications: remind yourself of open To Do's *(done - sorcerer-ma)* **(need review)**
+    * Part 1 - Alarms: *(done - sorcerer-ma)* **(need review)**
+    * Part 2 - Notifications: *(done - sorcerer-ma)* **(need review)**
+7. Step 4 - Parse URLs and open then in a Webview *(doing - sorcerer-ma)*
 8. Step 5 - Add images from the web
 9. Step 6 - Export ToDo's to the filesystem
 10. Advanced bonus challenge: Add voice commands

@@ -520,3 +520,220 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 * 打开开发者工具（应用窗口内右击，点击查看元素）
 * 选择 Console 标签
 * 你可以在其中看到运行时的错误信息
+
+
+## 第 3 步 - 提醒和通知：提醒你打开 To Do's ##
+
+想从这一步重新开始？可以在 solution_for_step2 子目录下找到之前练习的代码！
+
+目标：  
+* 学习如何用提醒功能指定一个间隔时间来唤醒你的应用
+* 学习如何使用通知功能来提示用户一些重要的信息(something important)
+完成本练习的建议时间：20 分钟
+
+现在我们要改写这个应用，让它能够在需要你打开 To Do's 的时候提醒你，即使在应用关闭的时候。应用将会使用 [Alarm API](http://developer.chrome.com/apps/alarms.html) 来设置一个唤醒应用的间隔时间，只要 Chrome 一直在运行，提醒监听器就会在接近于所设置的间隔时间被调用。
+
+### Part 1 - 提醒 ###
+
+1. 在 `manifest.json` 文件中，加入 "alarms" 权限：
+
+   ```json
+   ···
+   "permissions": ["storage", "alarms"],
+   ···
+   ```
+
+2. 在 `background.js` 中，加入 onAlarm 监听器，目前，每当 storage 中有一个 To Do 的项目时向控制台发送一个 log 消息即可：
+
+   ```javascript
+   ···
+   chrome.app.runtime.onLaunched.addListener(function() {
+     chrome.app.window.create(index.html', {
+       id: 'main',
+       bounds: { width: 620, height: 500 }
+     });
+   });
+
+   chrome.alarms.onAlarm.addListener(function( alarm ) {
+     console.log("Got an alarm!", alarm);
+   });
+   ```
+
+3. 在 `index.html` 中，添加一个 "Activate alarm" 按钮并引入我们之后要创建的脚本：
+
+   ```html
+   ···
+     <footer id="info">
+       <button id="toggleAlarm">Activate alarm</button>
+       <p>Double-click to edit a todo</p>
+   ···
+     <script src="js/store.js"></script>
+     <script src="js/model.js"></script>
+     <script src="js/view.js"></script>
+     <script src="js/controller.js"></script>
+     <script src="js/app.js"></script>
+     <script src="js/alarms.js"></script>
+   </body>
+   </html>
+   ``` 
+
+4. 创建一个新的脚本 js/alarms.js：
+
+   * 添加 checkAlarm, createAlarm, cancelAlarm 和 toggleAlarm 方法：
+
+   ```javascript
+   (function () {
+     'use strict';
+     var alarmName = 'remindme'; 
+     
+     function checkAlarm(callback) {
+       chrome.alarms.getAll(function(alarms) { 
+         
+         var hasAlarm = alarms.some(function(a) {
+           return a.name == alarmName;
+         });
+         
+         var newLabel;
+         if (hasAlarm) {
+           newLabel = 'Cancel alarm';
+         } else {
+           newLabel = 'Activate alarm';
+         }
+         document.getElementById('toggleAlarm').innerText = newLabel;
+         
+         if (callback) callback(hasAlarm);
+       })
+     }
+
+     function createAlarm() {
+       chrome.alarms.create(alarmName, {
+         delayInMinutes: 0.1, periodInMinutes: 0.1});
+     }
+
+     function cancelAlarm() {
+       chrome.alarms.clear(alarmName);
+     }
+
+     function doToggleAlarm() {
+       checkAlarm( function(hasAlarm) {
+         if (hasAlarm) {
+           cancelAlarm();
+         } else {
+           createAlarm();
+         }
+         checkAlarm();
+       });
+     }
+
+     $$('#toggleAlarm').addEventListener('click', doToggleAlarm);
+     checkAlarm();
+   })();
+   ```
+
+   ### 注意： ###
+
+   * 观察调用 chrome.alarms.create 时的参数，这些非常小的值（0.1 of a minute） 只是为了用来测试。在发布的应用中，这些值不会被接受，它们会被四舍五入到接近 1 分钟。在你的测试环境中，一个简单的警告被发送到了控制台 - 你可以忽略它。
+       打开开发者工具（在应用窗口上右击，点击**检查背景页**，选择控制台标签）。每当你激活了一个提醒，你应该会在控制台里看到日志信息 "rings" 被显示出来。
+
+### part 2 - 通知 ###
+
+现在让我们把提醒通知变成能让用户更容易注意到的东西。为了达到这个目的，我们要使用 [chrome notifications API](http://developer.chrome.com/apps/desktop_notifications.html)。我们将显示一个像下面这样桌面通知，并且当用户点击通知后，弹出 To Do 窗口到最上层。(to the top)
+
+![step_3_1][]
+
+1. 在 `manifest.json` 中，加入 "notifications" 权限：
+
+   ```
+   ···
+   "permissions": ["storage", "alarms", "notifications"],
+   ···
+   ```
+
+2. 在 `background.js` 中：
+   * 把 chrome.app.window.create 的调用移动到一个方法中，为了让我们可以重用它：
+
+     ```javascript
+     ...
+     function launch() {
+      chrome.app.window.create('index.html', {
+        id: 'main',
+        bounds: { width: 620, height: 500 }
+      });
+     }
+
+     /*
+     chrome.app.runtime.onLaunched.addListener(function() {
+       chrome.app.window.create('index.html', {
+         id: 'main',
+         bounds: { width: 620, height: 500 }
+       });
+     });
+     */
+
+     chrome.app.runtime.onLaunched.addListener(launch);
+     ...
+     ```
+
+   * 创建一个 showNotification 方法（注意下面的样例代码关联了 icon_128.png。如果你希望你的通知拥有一个图标，记得也把图标从作弊代码(TODO: cheat code)复制过来或创建一个你自己的图标）：
+   
+     ```javascript
+     ...
+     var dbName = 'todos-vanillajs';
+
+     function showNotification(storedData) {
+
+       var openTodos = 0;
+       
+       if ( storedData[dbName].todos ) {
+         storedData[dbName].todos.forEach(function(todo) {
+           if ( !todo.completed ) {
+             openTodos++;
+           }
+         });
+       }
+       
+       if (openTodos>0) {
+         // Now create the notification
+         chrome.notifications.create('reminder', {
+             type: 'basic',
+             iconUrl: 'icon_128.png',
+             title: 'Don\'t forget!',
+             message: 'You have '+openTodos+
+                      ' things to do. Wake up, dude!'
+          }, function(notificationId) {})
+       }
+     }
+
+     // When the user clicks on the notification,
+     // we will open the To Do list and dismiss the notification
+     chrome.notifications.onClicked.addListener(
+       function( notificationId ) {
+         launch();
+         chrome.notifications.clear(notificationId, function() {});
+       }
+     );
+     ...
+     ```
+
+   * 改写 onAlarm 监听器，把向控制台输出简单的新提醒信息变成存储数据并调用 showNotification：
+
+     ```  
+     ...
+     chrome.alarms.onAlarm.addListener(function( alarm ) {
+      /* console.log("Got an alarm!", alarm); */
+      chrome.storage.local.get(dbName, showNotification);
+     });
+     ...
+     ```
+
+现在重启你的应用并花一些使用它。你会注意到：
+
+* 即使你关闭了应用的窗口，提醒还是会出现
+* 如果你关闭了所有 Chrome 窗口，提醒就不会出现（非 ChromeOS 平台）
+* 当你的应用关闭后，你点击通知会打开应用窗口
+
+### 遇到问题了？ ###
+
+如果通知没有显示，检查一下你的 Chrome 版本是不是 28 或更高。chrome 通知是 Chrome 28 引进的，所以你可能想要使用标准的 web 通知 API，我们把改写代码的挑战留个你。W3C 的规范在[这里](http://www.w3.org/TR/notifications/)。
+
+如果你的 Chrome 是 28 但是通知还是没有显示，检查控制台中主窗口（右击 -> 审查元素）和背景页（右击 -> 审查背景页）的错误信息
