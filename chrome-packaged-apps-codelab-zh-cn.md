@@ -102,7 +102,7 @@ index.html:
 
 恭喜，你刚刚已经创建了一个新的 chrome 应用。如果你复制了 cheats 里的代码，确保你也复制了 icon_128.png，因为在 manifest.json 中关联了这个文件。
 
-现在你可以运行它了：
+现在你可以运行它了：  
 ![step_1_1](step_1_1.png)
 
 
@@ -116,10 +116,10 @@ index.html:
 * 重新加载应用（右击鼠标，重新加载应用）
 * 测试
 * 查看开发者工具控制台中是否有错误
-* 重复以上部分
+* 重复以上部分  
 ![step_1_2](step_1_2.png)
 
-开发者工具的控制台具有与你的应用相同的权限来使用你应用中的 API。这样，你就可以在加入一个 API 到你的代码中之前方便的测试它：
+开发者工具的控制台具有与你的应用相同的权限来使用你应用中的 API。这样，你就可以在加入一个 API 到你的代码中之前方便的测试它：  
 ![step_1_3](step_1_3.png)
 
 
@@ -156,23 +156,28 @@ index.html:42
 ### CSP Compliance ###
 
 1. 让我们通过创建应用的 [CSP compliant](http://developer.chrome.com/apps/contentSecurityPolicy.html) 来修复这个错误。引起 CSP non-compliances 的一个常见原因是内联的 Javascript，比如 DOM 属性上的事件处理（`<button onclick=''>`）以及 HTML 中的 `<script>` 标签。解决此问题的方法很简单：只要把那些内联的内容移动到新的文件中：
+
     * a. 编辑 `index.html` 并把内联的 Javascript 移动到一个新文件 `js/bootstrap.js`:  
-    ```html
-    <!--
-    <script>
-        // Bootstrap app data
-        window.app = {}; 
-    </script>
-    -->
-    <script src="js/bootstrap.js"></script>
-    ```
+      ```html
+      <!--
+      <script>
+          // Bootstrap app data
+          window.app = {}; 
+      </script>
+      -->
+      <script src="js/bootstrap.js"></script>
+      ```
+
     * b. 创建 `js/bootstrap.js`，内容为：
-    ```javascript
-    // Bootstrap app data
-    window.app = {};
-    ```
+      ```javascript
+      // Bootstrap app data
+      window.app = {};
+      ```
+
 3. 重新加载你的应用，是不是仍然报错？只是之前的错误已经不见了，但有了另一个错误：
+
 > Uncaught window.localStorage is not available in packaged apps. Use chrome.storage.local instead. platformApp:16
+
 4. 这个错误需要更多的步骤来修复
 
 
@@ -190,7 +195,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
 1. 在 `manifest.json` 中，加入 "storage" 权限：
    
-   ```json
+   ```
    ···
      "permissions": ["storage"],
    ···
@@ -233,7 +238,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
 3. 修复 find 方法：
 
-   ```
+   ```javascript
    Store.prototype.find = function (query, callback) {
      if (!callback) {
        return;
@@ -261,7 +266,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
 4. 修复 findAll 方法：
 
-   ```
+   ```javascript
    Store.prototype.findAll = function (callback) {
      callback = callback || function () {};
      /* callback.call(this, JSON.parse(localStorage[this._dbName]).todos); */
@@ -274,7 +279,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
 5. save 方法提出了新的挑战：因为它依赖了两个异步操作（get 和 set），这两个操作每次都会操作整个 JSON 存储，在对一个以上的 ToDos 进行任何一种批量操作都会造成称之为 [Read-After-Write](http://en.wikipedia.org/wiki/Hazard_(computer_architecture)#Read_After_Write_.28RAW.29) 的数据冒险(数据冲突)。有一些办法可以解决这个问题，但是我们会利用之后的机会来稍稍重构它(代码)，通过使用一个含有 ToDo id 的数组来进行单次更新。请注意如果我们使用像索引数据库这样的更加合适的数据存储，就不会发生这样的问题了。不过我们正在努力减少转换工作(minimize the conversion effort)：
 
-   ```
+   ```javascript
    Store.prototype.save = function (id, updateData, callback) {
 
      chrome.storage.local.get(this._dbName, function(storage) {
@@ -327,11 +332,12 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
      }.bind(this));
    };
    ```
+
 6. 我们也需要改写客户端的 save 方法，使它能够在一次调用中包含所有的 ID。(it can include all IDs in one call)
 
    * a. `controller.js` 中 toggleComplete 的 update 方法：
 
-     ```
+     ```javascript
      Controller.prototype.toggleComplete = function (ids, checkbox, silent) {
        var completed = checkbox.checked ? 1 : 0;
 
@@ -363,7 +369,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
    * b. `controller.js` 中 toggleAll 的 update 方法：
 
-     ```
+     ```javascript
      Controller.prototype.toggleAll = function (e) {
        var completed = e.target.checked ? 1 : 0;
        var query = 0;
@@ -384,11 +390,12 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
        this._filter();
      };
      ```
+
 7. 现在让我们来修复 ToDoMVC 代码中的两个小 bug，当使用异步存储时它们就会出现：
 
    * c. 在 `controller.js` 中的 removeItem 方法，把调用 _filter 的语句移动到回调函数里：
 
-     ```
+     ```javascript
      Controller.prototype.removeItem = function (id) {
        this.model.remove(id, function () {
          this.$todoList.removeChild($$('[data-id="' + id + '"]'));
@@ -401,7 +408,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
    * d. 还是在 `controller.js` 中，使 _updateCount 变为异步执行：
 
-     ```
+     ```javascript
      Controller.prototype._updateCount = function () {
        /* var todos = this.model.getCount(); *.
        this.model.getCount(function(todos) {
@@ -420,7 +427,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
    * e. 现在 `model.js` 中对应的 getCount 方法需要接受回调函数：
 
-     ```
+     ```javascript
      Model.prototype.getCount = function (callback) {
        var todos = {
          active: 0,
@@ -449,7 +456,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
    * f. 修复 `store.js` 中的 remove 方法：
 
-     ```
+     ```javascript
      Store.prototype.remove = function (id, callback) {
        chrome.storage.local.get(this._dbName, function(storage) {
          /* var data = JSON.parse(localStorage[this._dbName]); */
@@ -477,7 +484,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
    * g. 现在改写 `controller.js` 中的 removeCompletedItems 使其对所有的 id 调用一次 removeItem：
 
-     ```
+     ```javascript
      Controller.prototype.removeCompletedItems = function () {
        this.model.read({ completed: 1 }, function (data) {
          var ids = [];
@@ -494,7 +501,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
    * h. 最后改写 `controller.js` 中的 removeItem 以支持一次性从 DOM 移除多个条目：
 
-     ```
+     ```javascript
      Controller.prototype.removeItem = function (id) {
        this.model.remove(id, function () {
          var ids = [].concat(id);
@@ -510,7 +517,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
 其实 `store.js` 中还有另一个方法使用了 localStorage：drop。但因为整个项目都没有用到它，所以我们决定让你之后修复它来作为练习。
 
-现在你应该拥有了如下面截图一样的一个酷炫的 Chrome 打包版 ToDoMVC：
+现在你应该拥有了如下面截图一样的一个酷炫的 Chrome 打包版 ToDoMVC：  
 ![step_2_1](step_2_1.png)
 
 
@@ -753,7 +760,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 我们现在要改写我们的例子让其能够在 ToDo 内容中搜索网址，当找到搜索结果时添加一个链接。当点击该链接时将用一个 webview 打开一个新的应用窗口（不是浏览器标签）来展示内容。
 
 1. 在 `manifest.json` 中，加入 "webview" 权限：
-   ```json
+   ```
    ···
      "permissions": ["storage", "alarms", "notifications", "webview"],
    ···
@@ -889,12 +896,10 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
        ...
      ```
 
-现在，如果你重载你的应用，你看到的应该如下图：
-
+现在，如果你重载你的应用，你看到的应该如下图：  
 ![step_4_1](step_4_1.png)
 
-点击链接后：
-
+点击链接后：  
 ![step_4_2](step_4_2.png)
 
 **注意**：一个 webview 就是一个沙箱进程。你只能通过使用其 [API](http://developer.chrome.com/apps/tags/webview.html) 与其交互。嵌入的应用（你的应用）无法简单的获取直接访问 webview 的权限，如示例(TODO: for example)。
@@ -916,7 +921,7 @@ Chrome 打包应用平台要求你的应用必须完全遵从内容安全政策�
 
 1. 在 `manifest.json` 中，加入 "<all_url>" 权限。在一个 Chrome 打包应用中你可以让 XMLRequest 请求发向任意地址，只要你在 manifest 中把该域名设为白名单。我们不设置指定的域名，而是要求开启访问 "<all_urls>"（所有地址）的权限，是因为我们无法提前知道使用我们应用的用户将会在 To Do 的内容中输入什么图片地址：
 
-   ```json
+   ```
    ···
      "permissions": ["storage", "alarms",
                      "notifications", "webview", "<all_urls>"],
@@ -1057,8 +1062,7 @@ Chrome 打包应用平台要求你的应用必须完全遵从内容安全政策�
 [http://goo.gl/lftY4r#.jpg](http://goo.gl/lftY4r#.jpg)  
 [http://goo.gl/YCBJz1#.png](http://goo.gl/YCBJz1#.png)
 
-然后看起来会是这样：
-
+然后看起来会是这样：  
 ![step_5_1](step_5_1.png)
 
 **提示**：在真实环境的情况下，当你需要控制离线缓存并同时下载多个资源时，我们创建了一个 [帮助库](https://github.com/GoogleChrome/apps-resource-loader#readme) 来处理一些常见用例。
@@ -1228,15 +1232,15 @@ Chrome 打包应用平台要求你的应用必须完全遵从内容安全政策�
 
 ----------------------
 
-[1] http://developer.chrome.com/trunk/apps/manifest.html
-[2] http://developer.chrome.com/trunk/apps/app_lifecycle.html#eventpage
-[3] http://goo.gl/u9sRAL
-[4] http://developer.chrome.com/trunk/apps/storage.html
-[5] If you know the ToDoMVC web app (http://todomvc.com), we have copied its vanilla JavaScript version to be used as a starting point.
-[6] http://developer.chrome.com/trunk/apps/app_csp.html
-[7] http://en.wikipedia.org/wiki/Hazard_(computer_architecture)#Read_After_Write_.28RAW.29
-[8] http://www.w3.org/TR/notifications/
-[9] http://developer.chrome.com/trunk/apps/webview_tag.html
-[10] https://github.com/GoogleChrome/apps-resource-loader#readme
-[11] http://developer.chrome.com/trunk/apps/fileSystem.html#method-restoreEntry
-[12] http://www.google.com/intl/en/chrome/demos/speech.html
+[1] http://developer.chrome.com/trunk/apps/manifest.html  
+[2] http://developer.chrome.com/trunk/apps/app_lifecycle.html#eventpage  
+[3] http://goo.gl/u9sRAL  
+[4] http://developer.chrome.com/trunk/apps/storage.html  
+[5] If you know the ToDoMVC web app (http://todomvc.com), we have copied its vanilla JavaScript version to be used as a starting point.  
+[6] http://developer.chrome.com/trunk/apps/app_csp.html  
+[7] http://en.wikipedia.org/wiki/Hazard_(computer_architecture)#Read_After_Write_.28RAW.29  
+[8] http://www.w3.org/TR/notifications/  
+[9] http://developer.chrome.com/trunk/apps/webview_tag.html  
+[10] https://github.com/GoogleChrome/apps-resource-loader#readme  
+[11] http://developer.chrome.com/trunk/apps/fileSystem.html#method-restoreEntry  
+[12] http://www.google.com/intl/en/chrome/demos/speech.html  
