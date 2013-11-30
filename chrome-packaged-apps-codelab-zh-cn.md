@@ -907,3 +907,157 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 * 学习如何通过 XHR 和 ObjectURLs 加载你的应用的外部资源并添加到 DOM 中。
 完成本练习的建议时间：20 分钟
 
+Chrome 打包应用平台要求你的应用必须完全遵从内容安全政策。其中包括不能够直接加载 DOM 资源，如那些在你应用外部的图片、字体和 CSS。如果你想要在你的应用中显示一张外部图片，你需要通过 XHR 来请求，将它放进一个 Blob(TODO: Blob 怎么翻译 = =)并创建一个 ObjectURL。该 ObjectURL 之后能够被添加进 DOM，因为它与应用的上下文中的一个内存项相关(TODO: it refers to an in-memory item in the context of the app)。
+
+让我们改写我们的应用来查找 To Do 内容中的图片链接。如果地址看上去像一个图片（以 .png, .jpg, .svg 或 .gif 结尾），我们会下载该图片并将其作为缩略图放在锚点中显示在一侧。
+
+1. 在 `manifest.json` 中，加入 "<all_url>" 权限。在一个 Chrome 打包应用中你可以让 XMLRequest 请求发向任意地址，只要你在 manifest 中把该域名设为白名单。我们不设置指定的域名，而是要求开启访问 "<all_urls>"（所有地址）的权限，是因为我们无法提前知道使用我们应用的用户将会在 To Do 的内容中输入什么图片地址：
+
+   ```json
+   ···
+     "permissions": ["storage", "alarms",
+                     "notifications", "webview", "<all_urls>"],
+   ···
+   ```
+
+2. 在 `js/controller.js` 中：
+   
+   a. 添加一个方法来从 Blob(TODO: 怎么翻译？) 创建 ObjectURLs。ObjectURLs 会保持在内存中，在你不需要它们时需释放它们，所以也要增加一个 clear 方法：
+
+      ```javascript
+      Controller.prototype._clearObjectURL = function() {
+        if (this.objectURLs) {
+          this.objectURLs.forEach(function(objURL) {
+            URL.revokeObjectURL(objURL);
+          });
+          this.objectURLs = null;
+        }
+      };
+
+      Controller.prototype._createObjectURL = function(blob) {
+        var objURL = URL.createObjectURL(blob);
+        this.objectURLs = this.objectURLs || [];
+        this.objectURLs.push(objURL);
+        return objURL;
+      };
+      ```
+
+   b. 添加一个方法来执行 XMLRequest 的 URL(TODO: execute a XMLHttpRequest on a URL)，根据 XHR 的 response 创建一个 ObjectURLs 并用该 ObjectURLs 创建一个 <img> 元素添加到 DOM 中：
+
+      ```javascript
+      Controller.prototype._requestRemoteImageAndAppend =
+        function(imageUrl, element) {
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', imageUrl);
+          xhr.responseType = 'blob';
+          xhr.onload = function() {
+            var img = document.createElement('img');
+            img.setAttribute('data-src', imageUrl);
+            img.className = 'icon';
+            var objURL = this._createObjectURL(xhr.response);
+            img.setAttribute('src', objURL);
+            element.appendChild(img);
+          }.bind(this);
+          xhr.send();
+        };
+      ```
+
+   c. 现在添加一个方法，用来找到所有未处理的链接并检查它们。对于每个看上去像图片的链接地址，执行 _requestRemoteImageAndAppend：
+
+      ```javascript
+      Controller.prototype._parseForImageURLs = function () {
+        // remove old blobs to avoid memory leak:
+        this._clearObjectURL();
+
+        var links = this.$todoList.
+                    querySelectorAll('a[data-src]:not(.thumbnail)');
+        var re = /\.(png|jpg|jpeg|svg|gif)$/;
+
+        for (var i = 0; i<links.length; i++) {
+          var url = links[i].getAttribute('data-src');
+          if (re.test(url)) {
+            links[i].classList.add('thumbnail');
+            this._requestRemoteImageAndAppend(url, links[i]);
+          }
+        }
+      };
+      ```
+
+   d. 在 showAll、showActive、showCompleted 和 eidtItem 中合适(TODO: appropriately)的地方调用它：
+
+      ```javascript
+      Controller.prototype.showAll = function () {
+        this.model.read(function (data) {
+          this.$todoList.innerHTML =
+            this._parseForURLs(this.view.show(data));
+          this._parseForImageURLs();
+        }.bind(this));
+      };
+
+      /**
+       * Renders all active tasks
+       */
+      Controller.prototype.showActive = function () {
+        this.model.read({ completed: 0 }, function (data) {
+          this.$todoList.innerHTML =
+            this._parseForURLs(this.view.show(data));
+          this._parseForImageURLs();
+        }.bind(this));
+      };
+
+      /**
+       * Renders all completed tasks
+       */
+      Controller.prototype.showCompleted = function () {
+        this.model.read({ completed: 1 }, function (data) {
+          this.$todoList.innerHTML =
+            this._parseForURLs(this.view.show(data));
+          this._parseForImageURLs();
+        }.bind(this));
+      };
+
+      ...
+      
+      Controller.prototype.editItem = function (id, label) {
+        var li =  label;
+
+        // This finds the <label>'s parent <li>
+        while (li.nodeName !== 'LI') {
+          li = li.parentNode;
+        }
+        
+        var onSaveHandler = function () {
+          var value = input.value.trim();
+          var discarding = input.dataset.discard;
+          
+          if (value.length && !discarding) {
+            this.model.update(id, { title: input.value });
+            
+            // Instead of re-rendering the whole view just update
+            // this piece of it
+            label.innerHTML = this._parseForURLs(value);
+            this._parseForImageURLs();
+      ...
+      ```
+
+3. 最后，在 `bower_components/todomvc-common/base.css` 中，添加一条 CSS 规则来限制图片的尺寸：
+
+   ```css
+   .thumbnail img[data-src] {
+     max-width: 100px;
+     max-height: 28px;
+   }
+   ```
+
+现在重新加载你的应用，打开 Google 图片搜索，找一些图片链接地址并把它们添加到 ToDo 的内容中。一些例子：
+[http://goo.gl/lftY4r#.jpg](http://goo.gl/lftY4r#.jpg)
+[http://goo.gl/YCBJz1#.png](http://goo.gl/YCBJz1#.png)
+
+然后看起来会是这样：
+![step_5_1][]
+
+*提示*：在真实环境的情况下，当你需要控制离线缓存并同时下载多个资源时，我们创建了一个 [帮助库](https://github.com/GoogleChrome/apps-resource-loader#readme) 来处理一些常见用例。
+
+
+## 第 6 步 - 导出 ToDo 到文件系统 ##
+
