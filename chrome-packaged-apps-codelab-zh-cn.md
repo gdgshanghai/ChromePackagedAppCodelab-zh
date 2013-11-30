@@ -898,6 +898,8 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
 **注意**：一个 webview 就是一个沙箱进程。你只能通过使用其 [API](http://developer.chrome.com/apps/tags/webview.html) 与其交互。嵌入的应用（你的应用）无法简单的获取直接访问 webview 的权限，如示例(TODO: for example)。
 
+**高级**：如果你提前完成了，浏览一下 [webview]() 的文档并运行其中一些方法，让 webview 在加载时显示一个小的状态信息或状态指示器。
+
 
 ## 第 5 步 - 从 web 添加图片 ##
 
@@ -1050,14 +1052,190 @@ Chrome 打包应用平台要求你的应用必须完全遵从内容安全政策�
    ```
 
 现在重新加载你的应用，打开 Google 图片搜索，找一些图片链接地址并把它们添加到 ToDo 的内容中。一些例子：
-[http://goo.gl/lftY4r#.jpg](http://goo.gl/lftY4r#.jpg)
+
+[http://goo.gl/lftY4r#.jpg](http://goo.gl/lftY4r#.jpg)  
 [http://goo.gl/YCBJz1#.png](http://goo.gl/YCBJz1#.png)
 
 然后看起来会是这样：
+
 ![step_5_1][]
 
-*提示*：在真实环境的情况下，当你需要控制离线缓存并同时下载多个资源时，我们创建了一个 [帮助库](https://github.com/GoogleChrome/apps-resource-loader#readme) 来处理一些常见用例。
+**提示**：在真实环境的情况下，当你需要控制离线缓存并同时下载多个资源时，我们创建了一个 [帮助库](https://github.com/GoogleChrome/apps-resource-loader#readme) 来处理一些常见用例。
 
 
 ## 第 6 步 - 导出 ToDo 到文件系统 ##
 
+想从这一步重新开始？可以在 solution_for_step5 子目录下找到之前练习的代码！
+
+目标：
+* 学习如何获取外部文件系统中的文件的引用，并使用 [FileSystem API](http://developer.chrome.com/apps/app_storage.html#filesystem) 在应用的生命周期中写入该文件。
+完成本练习的建议时间：20 分钟
+
+在这一步中，我们将在应用里添加一个导出按钮。点击后，当前的 To Do 项会保存到一个用户选择的文本文件中。如果文件存在，则会替换此文件。否则，会创建一个新文件。值得注意的是在表示文件实体的对象的生命周期内，用户仅需要选择文件一次。在我们的例子中，我们把它绑定到应用窗口上 - 因此只要用户保持窗口打开，Javascript 代码就能无需任何用户交互来写入选择的文件。
+
+1. 在 `manifest.json` 中，添加 `{fileSystem: [ "write" ] }` 授权。注意该授权的语法要比其他的更复杂，我们不仅需要获取外部文件系统，也需要向其写入：
+
+   ```
+   ...
+     "permissions": ["storage", "alarms", "notifications", "webview",
+                     "<all_urls>", { "fileSystem": ["write"] } ],
+   ...
+   ```
+
+2. 在 `index.html` 中，添加一个 "导出到磁盘" 按钮以及一个 div，用来让我们显示状态信息。另外，加载我们之后会创建的脚本：
+
+   ```html
+   ...
+     <footer id="info">
+       <button id="toggleAlarm">Activate alarm</button>
+       <button id="exportToDisk">Export to disk</button>
+       <div id="status"></div>
+       <p>Double-click to edit a todo</p>
+       <p>Created by <a href="http://twitter.com/oscargodson">Oscar Godson</a></p>
+     </footer>
+     <script src="bower_components/todomvc-common/base.js"></script>
+     <script src="bower_components/director/build/director.js"></script>
+     <script src="js/bootstrap.js"></script>
+     <script src="js/helpers.js"></script>
+     <script src="js/store.js"></script>
+     <script src="js/model.js"></script>
+     <script src="js/view.js"></script>
+     <script src="js/controller.js"></script>
+     <script src="js/app.js"></script>
+     <script src="js/alarms.js"></script>
+     <script src="js/export.js"></script>
+   </body>
+   </html>
+   ```
+
+3. 按照以下步骤创建一个新 Javascript 脚本，`js/export.js`：
+
+   * 一个 getTodosAsText 方法用来从 chrome.storage.local 读取 ToDos 并生成相应的文本内容；
+   * 一个 exportToFileEntry 方法，给定一个文件实体，会保存 To Do 的文本到那个文件；
+   * 一个 doExportToDisk 方法，在我们已有一个保存过的文件实体时，执行上面添加的 exportToFileEntry 方法，在没有的时候让用户选择一个；
+   * 监听 "导出到磁盘" 按钮的点击事件
+
+   ```javascript
+   (function() {
+
+     var dbName = 'todos-vanillajs';
+     
+     var savedFileEntry, fileDisplayPath;
+     
+     function getTodosAsText(callback) {
+       chrome.storage.local.get(dbName, function(storedData) {
+         var text = '';
+         
+         if ( storedData[dbName].todos ) {
+           storedData[dbName].todos.forEach(function(todo) {
+               text += '- ';
+               if ( todo.completed ) {
+                 text += '[DONE] ';
+               }
+               text += todo.title;
+               text += '\n';
+             }, '');
+         }
+         
+         callback(text);
+       
+       }.bind(this));
+     }
+
+     // Given a FileEntry,
+     function exportToFileEntry(fileEntry) {
+       savedFileEntry = fileEntry;
+
+       var status = document.getElementById('status');
+       
+       // Use this to get a pretty name appropriate for displaying
+       chrome.fileSystem.getDisplayPath(fileEntry, function(path) {
+         fileDisplayPath = path;
+         status.innerText = 'Exporting to '+path;
+       });
+       
+       getTodosAsText( function(contents) {
+         
+         fileEntry.createWriter(function(fileWriter) {
+           
+           fileWriter.onwriteend = function(e) {
+             status.innerText = 'Export to '+
+                  fileDisplayPath+' completed';
+           };
+           
+           fileWriter.onerror = function(e) {
+             status.innerText = 'Export failed: '+e.toString();
+           };
+           
+           var blob = new Blob([contents]);
+           fileWriter.write(blob);
+           
+           // You need to explicitly set the file size to truncate
+           // any content that might was there before
+           fileWriter.truncate(blob.size);
+         
+         });
+       });
+
+     }
+
+     function doExportToDisk() {
+       
+       if (savedFileEntry) {
+         
+         exportToFileEntry(savedFileEntry);
+       
+       } else {
+         
+         chrome.fileSystem.chooseEntry( {
+           type: 'saveFile',
+           suggestedName: 'todos.txt',
+           accepts: [ { description: 'Text files (*.txt)',
+                        extensions: ['txt']} ],
+           acceptsAllTypes: true
+         }, exportToFileEntry);
+       
+       }
+     }
+
+    document.getElementById('exportToDisk').
+      addEventListener('click', doExportToDisk);
+   
+   })()
+   ```
+
+**高级**：文件实体无法持久化，这意味着每次启动你的应用都需要让用户选择文件。但是，如果你的应用被强制重启（比如运行环境崩溃、应用升级或运行环境升级），那么 [这里有一个选项](http://developer.chrome.com/apps/fileSystem.html#method-restoreEntry) 来还原文件实体。如果你提前完成，尝试一下保存 [retainEntry](http://developer.chrome.com/apps/fileSystem.html#method-retainEntry) 返回的 ID 并且在应用重启时恢复它（提示：为 背景页的 onRestarted 事件添加一个监听器）
+
+恭喜你！如果你完成了所有的步骤，你应该有了一个如下图所示的完整的 ToDoMVC 打包应用：
+
+![sterp_6_1][]
+
+![sterp_6_2][]
+
+
+## 进阶的奖励挑战：添加语音指令 ##
+
+想从这一步重新开始？可以在 solution_for_step6 子目录下找到之前练习的代码！
+
+如果你已经进行到这一步并且还有多余的时间，你可能会想要尝试一下非常高级的挑战：让你的应用能够通过说话来添加 ToDos，这个怎么样？使用 [HTML 5 WebSpeech API](http://www.google.com/intl/en/chrome/demos/speech.html) 并按照以下高阶步骤(TODO: high-level step)来做：
+
+* 在 `manifest.json` 中添加 "audioCapture" 授权
+* 当用户点击激活按钮时开始语音识别
+* 在 "add note" 命令之后、"end note" 之前，获取任意文本并保存它们到 To Do 项中
+
+这部分挑战没有作弊用的代码，自己来 hack 吧！
+
+----------------------
+
+[1] http://developer.chrome.com/trunk/apps/manifest.html
+[2] http://developer.chrome.com/trunk/apps/app_lifecycle.html#eventpage
+[3] http://goo.gl/u9sRAL
+[4] http://developer.chrome.com/trunk/apps/storage.html
+[5] If you know the ToDoMVC web app (http://todomvc.com), we have copied its vanilla JavaScript version to be used as a starting point.
+[6] http://developer.chrome.com/trunk/apps/app_csp.html
+[7] http://en.wikipedia.org/wiki/Hazard_(computer_architecture)#Read_After_Write_.28RAW.29
+[8] http://www.w3.org/TR/notifications/
+[9] http://developer.chrome.com/trunk/apps/webview_tag.html
+[10] https://github.com/GoogleChrome/apps-resource-loader#readme
+[11] http://developer.chrome.com/trunk/apps/fileSystem.html#method-restoreEntry
+[12] http://www.google.com/intl/en/chrome/demos/speech.html
