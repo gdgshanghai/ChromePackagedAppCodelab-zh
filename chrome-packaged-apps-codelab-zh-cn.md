@@ -737,3 +737,173 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 如果通知没有显示，检查一下你的 Chrome 版本是不是 28 或更高。chrome 通知是 Chrome 28 引进的，所以你可能想要使用标准的 web 通知 API，我们把改写代码的挑战留个你。W3C 的规范在[这里](http://www.w3.org/TR/notifications/)。
 
 如果你的 Chrome 是 28 但是通知还是没有显示，检查控制台中主窗口（右击 -> 审查元素）和背景页（右击 -> 审查背景页）的错误信息
+
+
+## 第 4 步 - 解析 URL 并在 Webview 中打开 ##
+
+想从这一步重新开始？可以在 solution_for_step3 子目录下找到之前练习的代码！
+
+目标：
+* 学习在安全的沙箱模式下通过 [webview 标签](http://developer.chrome.com/apps/tags/webview.html) 在你的应用中加载并显示大部分的外部内容。 // TODO
+完成本练习的建议时间：10 分钟
+
+一些应用需要直接向用户展示一些外部的 web 内容，同时保持用户在应用的体验内(TODO: but keep him inside the application experience)。举例来说，一个新闻汇集应用(TODO: a news aggregator)可能想要从外部站点嵌入各种新闻且希望与原网站的格式、图片和行为保持一致。为完成这一点或其他用途，Chrome 打包应用拥有一个叫做 [webview](http://developer.chrome.com/apps/tags/webview.html) 的自定义的标签。它是一个非常强大的组建，但其最基础的用法事实上是非常简单的，你接下来将会学习它。
+
+我们现在要改写我们的例子让其能够在 ToDo 内容中搜索网址，当找到搜索结果时添加一个链接。当点击该链接时将用一个 webview 打开一个新的应用窗口（不是浏览器标签）来展示内容。
+
+1. 在 `manifest.json` 中，加入 "webview" 权限：
+   ```json
+   ···
+     "permissions": ["storage", "alarms", "notifications", "webview"],
+   ···
+   ```
+
+2. 使用一个简单的 `<webview>` 标签创建一个新文件 `webview.html`：
+   ```html  
+   <!DOCTYPE html>
+   <html>
+   <head>
+     <meta charset="utf-8">
+   </head>
+   <body>
+     <webview style="width: 100%; height: 100%;"></webview>
+   </body>
+   </html>
+   ```
+
+3. 在 `controller.js` 中：
+   
+   * 添加一个方法用来解析 To Do 内容中的链接地址。一旦找到地址，用一个锚点来替换它：
+     ```javascript
+     Controller.prototype._parseForURLs = function (text) {
+       var re = /(https?:\/\/[^\s"<>,]+)/g;
+       return text.replace(re, '<a href="$1" data-src="$1">$1</a>');
+     };
+    ```
+
+   * 添加一个方法来打开一个带有 webview 的新窗口并给 webview.src 设置一个地址：
+     ```javascript
+     Controller.prototype._doShowUrl = function(e) {
+       // only applies to elements with data-src attributes
+       if (!e.target.hasAttribute('data-src')) {
+         return;
+       }
+       e.preventDefault();
+
+       var url = e.target.getAttribute('data-src');
+       chrome.app.window.create(
+        'webview.html',
+        {hidden: true},   // only show window when webview is      configured
+        function(appWin) {
+          appWin.contentWindow.addEventListener('DOMContentLoaded',
+            function(e) {
+              // when window is loaded, set webview source
+              var webview = appWin.contentWindow.
+                   document.querySelector('webview');
+              webview.src = url;
+              // now we can show it:
+              appWin.show();
+            }
+          );
+        });
+     };
+     ```
+
+   * 每当显示代办项(TODO: items)的时候进行链接解析：
+     ```javascript
+     /**
+      * An event to fire on load. Will get all items and display them in the
+      * todo-list
+      */
+     Controller.prototype.showAll = function () {
+       this.model.read(function (data) {
+         this.$todoList.innerHTML =
+            this._parseForURLs(this.view.show(data));
+       }.bind(this));
+     };
+
+     /**
+      * Renders all active tasks
+      */
+     Controller.prototype.showActive = function () {
+       this.model.read({ completed: 0 }, function (data) {
+         this.$todoList.innerHTML =
+            this._parseForURLs(this.view.show(data));
+       }.bind(this));
+     };
+
+     /**
+      * Renders all completed tasks
+      */
+     Controller.prototype.showCompleted = function () {
+       this.model.read({ completed: 1 }, function (data) {
+         this.$todoList.innerHTML =
+             this._parseForURLs(this.view.show(data));
+       }.bind(this));
+     };
+     ```
+
+   * 解析编辑项中的链接。同样的，修复代码让其使用 input 元素的 innerText 来代替它的 innerHTML：
+     ```javascript
+     Controller.prototype.editItem = function (id, label) {
+       ...
+
+       var onSaveHandler = function () {
+         ...
+           // Instead of re-rendering the whole view just update
+           // this piece of it
+           /* label.innerHTML = value; */
+           label.innerHTML = this._parseForURLs(value);
+
+       ...
+
+       // Get the innerHTML of the label instead of requesting the data from the
+       // ORM. If this were a real DB this would save a lot of time and would avoid
+       // a spinner gif.
+       /* input.value = label.innerHTML; */
+       input.value = label.innerText;
+       ...
+     ```
+
+   * 最后，在 Controller 构造器中添加一个点击事件监听器，当用户点击链接时调用 doShowUrl 方法：
+     ```javascript
+     function Controller(model, view) {
+       this.model = model;
+       this.view = view;
+
+       this.ENTER_KEY = 13;
+       this.ESCAPE_KEY = 27;
+
+       this.$main = $$('#main');
+       this.$toggleAll = $$('#toggle-all');
+       this.$todoList = $$('#todo-list');
+       this.$todoItemCounter = $$('#todo-count');
+       this.$clearCompleted = $$('#clear-completed');
+       this.$footer = $$('#footer');
+       
+       this.router = new Router();
+       this.router.init();
+       
+       this.$todoList.addEventListener('click', this._doShowUrl);
+       ...
+     ```
+
+现在，如果你重载你的应用，你看到的应该如下图：
+
+![step_4_1][]
+
+点击链接后：
+
+![step_4_2][]
+
+**注意**：一个 webview 就是一个沙箱进程。你只能通过使用其 [API](http://developer.chrome.com/apps/tags/webview.html) 与其交互。嵌入的应用（你的应用）无法简单的获取直接访问 webview 的权限，如示例(TODO: for example)。
+
+
+## 第 5 步 - 从 web 添加图片 ##
+
+想从这一步重新开始？可以在 solution_for_step4 子目录下找到之前练习的代码！
+
+目标：
+* 学习如何通过 XHR 和 ObjectURLs 加载你的应用的外部资源并添加到 DOM 中。
+完成本练习的建议时间：20 分钟
+
