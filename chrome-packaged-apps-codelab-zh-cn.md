@@ -1,3 +1,4 @@
+![logo](logo.png)
 # Chrome packaged apps #
 ### Codelab at DevFest 2013 Season ###
 *translate by: sorcerer.ma@gmail.com*
@@ -102,7 +103,7 @@ index.html:
 恭喜，你刚刚已经创建了一个新的 chrome 应用。如果你复制了 cheats 里的代码，确保你也复制了 icon_128.png，因为在 manifest.json 中关联了这个文件。
 
 现在你可以运行它了：
-![step_1_1][]
+![step_1_1](step_1_1.png)
 
 
 ### 如何调试 Chrome 应用 ###
@@ -116,10 +117,10 @@ index.html:
 * 测试
 * 查看开发者工具控制台中是否有错误
 * 重复以上部分
-![step_1_2][]
+![step_1_2](step_1_2.png)
 
 开发者工具的控制台具有与你的应用相同的权限来使用你应用中的 API。这样，你就可以在加入一个 API 到你的代码中之前方便的测试它：
-![step_1_3][]
+![step_1_3](step_1_3.png)
 
 
 
@@ -510,7 +511,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 其实 `store.js` 中还有另一个方法使用了 localStorage：drop。但因为整个项目都没有用到它，所以我们决定让你之后修复它来作为练习。
 
 现在你应该拥有了如下面截图一样的一个酷炫的 Chrome 打包版 ToDoMVC：
-![step_2_1][]
+![step_2_1](step_2_1.png)
 
 
 ### 遇到问题了？ ###
@@ -639,7 +640,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
 现在让我们把提醒通知变成能让用户更容易注意到的东西。为了达到这个目的，我们要使用 [chrome notifications API](http://developer.chrome.com/apps/desktop_notifications.html)。我们将显示一个像下面这样桌面通知，并且当用户点击通知后，弹出 To Do 窗口到最上层。(to the top)
 
-![step_3_1][]
+![step_3_1](step_3_1.png)
 
 1. 在 `manifest.json` 中，加入 "notifications" 权限：
 
@@ -890,11 +891,11 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
 现在，如果你重载你的应用，你看到的应该如下图：
 
-![step_4_1][]
+![step_4_1](step_4_1.png)
 
 点击链接后：
 
-![step_4_2][]
+![step_4_2](step_4_2.png)
 
 **注意**：一个 webview 就是一个沙箱进程。你只能通过使用其 [API](http://developer.chrome.com/apps/tags/webview.html) 与其交互。嵌入的应用（你的应用）无法简单的获取直接访问 webview 的权限，如示例(TODO: for example)。
 
@@ -1058,7 +1059,7 @@ Chrome 打包应用平台要求你的应用必须完全遵从内容安全政策�
 
 然后看起来会是这样：
 
-![step_5_1][]
+![step_5_1](step_5_1.png)
 
 **提示**：在真实环境的情况下，当你需要控制离线缓存并同时下载多个资源时，我们创建了一个 [帮助库](https://github.com/GoogleChrome/apps-resource-loader#readme) 来处理一些常见用例。
 
@@ -1208,9 +1209,9 @@ Chrome 打包应用平台要求你的应用必须完全遵从内容安全政策�
 
 恭喜你！如果你完成了所有的步骤，你应该有了一个如下图所示的完整的 ToDoMVC 打包应用：
 
-![sterp_6_1][]
+![sterp_6_1](step_6_1.png)
 
-![sterp_6_2][]
+![sterp_6_2](step_6_2.png)
 
 
 ## 进阶的奖励挑战：添加语音指令 ##

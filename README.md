@@ -23,5 +23,5 @@
     * Part 2 - Notifications: *(done)* **(need review)**
 7. Step 4 - Parse URLs and open then in a Webview *(done)* **(need review)**
 8. Step 5 - Add images from the web *(done)* **(need review)**
-9. Step 6 - Export ToDo's to the filesystem *(doing)*
-10. Advanced bonus challenge: Add voice commands
+9. Step 6 - Export ToDo's to the filesystem *(done)* **(need review)**
+10. Advanced bonus challenge: Add voice commands *(done)* **(need review)**
