@@ -1,4 +1,4 @@
-![logo](logo.png)
+![logo_small](logo_small.png)
 # Chrome packaged apps #
 ### Codelab at DevFest 2013 Season ###
 *translate by: sorcerer.ma@gmail.com*
@@ -410,7 +410,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
      ```javascript
      Controller.prototype._updateCount = function () {
-       /* var todos = this.model.getCount(); *.
+       /* var todos = this.model.getCount(); */
        this.model.getCount(function(todos) {
 
          this.$todoItemCounter.innerHTML = this.view.itemCounter(todos.active);
@@ -545,9 +545,9 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
 1. 在 `manifest.json` 文件中，加入 "alarms" 权限：
 
-   ```json
+   ```
    ···
-   "permissions": ["storage", "alarms"],
+     "permissions": ["storage", "alarms"],
    ···
    ```
 
@@ -556,7 +556,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
    ```javascript
    ···
    chrome.app.runtime.onLaunched.addListener(function() {
-     chrome.app.window.create(index.html', {
+     chrome.app.window.create('index.html', {
        id: 'main',
        bounds: { width: 620, height: 500 }
      });
@@ -653,7 +653,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
    ```
    ···
-   "permissions": ["storage", "alarms", "notifications"],
+     "permissions": ["storage", "alarms", "notifications"],
    ···
    ```
 
@@ -725,7 +725,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
    * 改写 onAlarm 监听器，把向控制台输出简单的新提醒信息变成存储数据并调用 showNotification：
 
-     ```  
+     ```javascript
      ...
      chrome.alarms.onAlarm.addListener(function( alarm ) {
       /* console.log("Got an alarm!", alarm); */
@@ -752,7 +752,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 想从这一步重新开始？可以在 solution_for_step3 子目录下找到之前练习的代码！
 
 目标：
-* 学习在安全的沙箱模式下通过 [webview 标签](http://developer.chrome.com/apps/tags/webview.html) 在你的应用中加载并显示大部分的外部内容。 // TODO
+* 学习在安全的沙箱模式下通过 [webview 标签](http://developer.chrome.com/apps/tags/webview.html) 在你的应用中加载并显示大部分的外部内容。 // TODO  
 完成本练习的建议时间：10 分钟
 
 一些应用需要直接向用户展示一些外部的 web 内容，同时保持用户在应用的体验内(TODO: but keep him inside the application experience)。举例来说，一个新闻汇集应用(TODO: a news aggregator)可能想要从外部站点嵌入各种新闻且希望与原网站的格式、图片和行为保持一致。为完成这一点或其他用途，Chrome 打包应用拥有一个叫做 [webview](http://developer.chrome.com/apps/tags/webview.html) 的自定义的标签。它是一个非常强大的组建，但其最基础的用法事实上是非常简单的，你接下来将会学习它。
@@ -876,7 +876,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
    * 最后，在 Controller 构造器中添加一个点击事件监听器，当用户点击链接时调用 doShowUrl 方法：
      ```javascript
      function Controller(model, view) {
-       this.model = model;
+       this.model = model;  
        this.view = view;
 
        this.ENTER_KEY = 13;
@@ -912,14 +912,14 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 想从这一步重新开始？可以在 solution_for_step4 子目录下找到之前练习的代码！
 
 目标：
-* 学习如何通过 XHR 和 ObjectURLs 加载你的应用的外部资源并添加到 DOM 中。
+* 学习如何通过 XHR 和 ObjectURLs 加载你的应用的外部资源并添加到 DOM 中。  
 完成本练习的建议时间：20 分钟
 
 Chrome 打包应用平台要求你的应用必须完全遵从内容安全政策。其中包括不能够直接加载 DOM 资源，如那些在你应用外部的图片、字体和 CSS。如果你想要在你的应用中显示一张外部图片，你需要通过 XHR 来请求，将它放进一个 Blob(TODO: Blob 怎么翻译 = =)并创建一个 ObjectURL。该 ObjectURL 之后能够被添加进 DOM，因为它与应用的上下文中的一个内存项相关(TODO: it refers to an in-memory item in the context of the app)。
 
 让我们改写我们的应用来查找 To Do 内容中的图片链接。如果地址看上去像一个图片（以 .png, .jpg, .svg 或 .gif 结尾），我们会下载该图片并将其作为缩略图放在锚点中显示在一侧。
 
-1. 在 `manifest.json` 中，加入 "<all_url>" 权限。在一个 Chrome 打包应用中你可以让 XMLRequest 请求发向任意地址，只要你在 manifest 中把该域名设为白名单。我们不设置指定的域名，而是要求开启访问 "<all_urls>"（所有地址）的权限，是因为我们无法提前知道使用我们应用的用户将会在 To Do 的内容中输入什么图片地址：
+1. 在 `manifest.json` 中，加入 "`<all_url>`" 权限。在一个 Chrome 打包应用中你可以让 XMLRequest 请求发向任意地址，只要你在 manifest 中把该域名设为白名单。我们不设置指定的域名，而是要求开启访问 "<all_urls>"（所有地址）的权限，是因为我们无法提前知道使用我们应用的用户将会在 To Do 的内容中输入什么图片地址：
 
    ```
    ···
