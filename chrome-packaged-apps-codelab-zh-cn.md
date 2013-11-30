@@ -1,7 +1,7 @@
 ![logo_small](logo_small.png)
 # Chrome packaged apps #
 ### Codelab at DevFest 2013 Season ###
-*translate by: sorcerer.ma@gmail.com*
+*translated by: sorcerer.ma@gmail.com*
 
 
 
@@ -536,7 +536,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
 目标：  
 * 学习如何用提醒功能指定一个间隔时间来唤醒你的应用
-* 学习如何使用通知功能来提示用户一些重要的信息(something important)
+* 学习如何使用通知功能来提示用户一些重要的信息(something important)  
 完成本练习的建议时间：20 分钟
 
 现在我们要改写这个应用，让它能够在需要你打开 To Do's 的时候提醒你，即使在应用关闭的时候。应用将会使用 [Alarm API](http://developer.chrome.com/apps/alarms.html) 来设置一个唤醒应用的间隔时间，只要 Chrome 一直在运行，提醒监听器就会在接近于所设置的间隔时间被调用。
@@ -1073,7 +1073,7 @@ Chrome 打包应用平台要求你的应用必须完全遵从内容安全政策�
 想从这一步重新开始？可以在 solution_for_step5 子目录下找到之前练习的代码！
 
 目标：
-* 学习如何获取外部文件系统中的文件的引用，并使用 [FileSystem API](http://developer.chrome.com/apps/app_storage.html#filesystem) 在应用的生命周期中写入该文件。
+* 学习如何获取外部文件系统中的文件的引用，并使用 [FileSystem API](http://developer.chrome.com/apps/app_storage.html#filesystem) 在应用的生命周期中写入该文件。  
 完成本练习的建议时间：20 分钟
 
 在这一步中，我们将在应用里添加一个导出按钮。点击后，当前的 To Do 项会保存到一个用户选择的文本文件中。如果文件存在，则会替换此文件。否则，会创建一个新文件。值得注意的是在表示文件实体的对象的生命周期内，用户仅需要选择文件一次。在我们的例子中，我们把它绑定到应用窗口上 - 因此只要用户保持窗口打开，Javascript 代码就能无需任何用户交互来写入选择的文件。
