@@ -1,18 +1,17 @@
 ![logo_small](logo_small.png)
 # Chrome packaged apps #
 ### Codelab at DevFest 2013 Season ###
-*translated by: sorcerer.ma@gmail.com*
 
 
 
 ## 介绍 ##
 
-欢迎来到 chrome 应用 的开发练习！这是一个自学课程(self-paced codelab)，在这里你将完成 chrome 应用 开发的基本练习并学习 API 中的一部分。
+欢迎来到 chrome 打包应用 的开发练习！这是一个自学课程(self-paced codelab)，在这里你将完成 chrome 打包应用 开发的基本练习并学习 API 中的一部分。
 你可以在 [官方文档](http://developer.chrome.com/apps/about_apps.html) 中找到本教程中大部分概念的详细描述。之后的每一个练习环节都会包含该练习所用到的 API 文档链接。
 
-在第一章节中你将学习开发 chrome 应用 所需的基本构建部分，以及如何运行和调试你的 chrome 应用。
+在第一章节中你将学习开发 chrome 打包应用 所需的基本构建部分，以及如何运行和调试你的 chrome 打包应用。
 
-第二章节中我们引入一个众所周知的开源 web 应用，ToDoMVC，通过移除一些不支持的特性（比如 localStorage）并实现 CSP compliance，来学习如何让该 web 应用成为 chrome 应用。
+第二章节中我们引入一个众所周知的开源 web 应用，ToDoMVC，通过移除一些不支持的特性（比如 localStorage）并遵从 CSP（Content Security Policy - 内容安全政策），来学习如何让该 web 应用成为 chrome 应用。
 
 之后的第三章节，我们会使用 chrome 应用独有的 API 为 ToDoMVC 添加一些功能。
 
@@ -153,37 +152,37 @@ index.html:
 > Refused to execute inline script because it violates the following Content Security Policy directive: "default-src 'self' chrome-extension-resource:". Note that 'script-src' was not explicitly set, so 'default-src' is used as a fallback.
 index.html:42
 
-### CSP Compliance ###
+### 遵从 CSP ###
 
-1. 让我们通过创建应用的 [CSP compliant](http://developer.chrome.com/apps/contentSecurityPolicy.html) 来修复这个错误。引起 CSP non-compliances 的一个常见原因是内联的 Javascript，比如 DOM 属性上的事件处理（`<button onclick=''>`）以及 HTML 中的 `<script>` 标签。解决此问题的方法很简单：只要把那些内联的内容移动到新的文件中：
+1. 让我们通过让应用 [遵从 CSP](http://developer.chrome.com/apps/contentSecurityPolicy.html) 来修复这个错误。造成不符合 CSP 的一个常见原因是内联的 Javascript，比如 DOM 属性上的事件处理（`<button onclick=''>`）以及 HTML 中的 `<script>` 标签。解决此问题的方法很简单：只要把那些内联的内容移动到新的文件中：
 
-    * a. 编辑 `index.html` 并把内联的 Javascript 移动到一个新文件 `js/bootstrap.js`:  
-      ```html
-      <!--
-      <script>
-          // Bootstrap app data
-          window.app = {}; 
-      </script>
-      -->
-      <script src="js/bootstrap.js"></script>
-      ```
+   a. 编辑 `index.html` 并把内联的 Javascript 移动到一个新文件 `js/bootstrap.js`:  
+   ```html
+   <!--
+   <script>
+       // Bootstrap app data
+       window.app = {}; 
+   </script>
+   -->
+   <script src="js/bootstrap.js"></script>
+   ```
 
-    * b. 创建 `js/bootstrap.js`，内容为：
-      ```javascript
-      // Bootstrap app data
-      window.app = {};
-      ```
+   b. 创建 `js/bootstrap.js`，内容为：  
+   ```javascript
+   // Bootstrap app data
+   window.app = {};
+   ```
 
 3. 重新加载你的应用，是不是仍然报错？只是之前的错误已经不见了，但有了另一个错误：
 
-> Uncaught window.localStorage is not available in packaged apps. Use chrome.storage.local instead. platformApp:16
+   > Uncaught window.localStorage is not available in packaged apps. Use chrome.storage.local instead. platformApp:16
 
 4. 这个错误需要更多的步骤来修复
 
 
 ### 把 localStorage 变为 chrome.storage.local ###
 
-Chrome 应用不支持 LocalStorage。为什么呢？因为 LocalStorage 是同步的，而同步获取的块资源（I/O）方式在单线程的运行环境中通常不是一个好办法。如果你的存储有着很高的延迟，那你的应用可能变得无响应。
+Chrome 应用不支持 LocalStorage。为什么呢？因为 LocalStorage 是同步的，而同步获取块资源（I/O）的方式在单线程的运行环境中通常不是一个好主意。如果你的存储延迟很高，那你的应用可能变得毫无响应。
 
 Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了某些时候 *对象 -> 字符串 -> 对象* 的序列化过程所造成的代价。
 
@@ -193,16 +192,14 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 * a. 看一下下方代码的改动。确认你是否能够理解它们，如果有问题请询问助教。  
 * b. **复制 cheat_code/solution_for_step_2 下的文件并进入下一步练习**。我们已经搞定了下面的步骤，以便你继续学习。( We've kept all the steps below for learning purposes)
 
-1. 在 `manifest.json` 中，加入 "storage" 权限：
-   
+1. 在 `manifest.json` 中，加入 "storage" 权限：  
    ```
    ···
      "permissions": ["storage"],
    ···
    ```
 
-2. 在 `store.js` 中，修复构造器：
-
+2. 在 `store.js` 中，修复构造器：  
    ```javascript
    function Store(name, callback) {
      var data;
@@ -236,8 +233,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
    }
    ```
 
-3. 修复 find 方法：
-
+3. 修复 find 方法：  
    ```javascript
    Store.prototype.find = function (query, callback) {
      if (!callback) {
@@ -264,8 +260,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
    };
    ```
 
-4. 修复 findAll 方法：
-
+4. 修复 findAll 方法：  
    ```javascript
    Store.prototype.findAll = function (callback) {
      callback = callback || function () {};
@@ -277,8 +272,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
    };
    ```
 
-5. save 方法提出了新的挑战：因为它依赖了两个异步操作（get 和 set），这两个操作每次都会操作整个 JSON 存储，在对一个以上的 ToDos 进行任何一种批量操作都会造成称之为 [Read-After-Write](http://en.wikipedia.org/wiki/Hazard_(computer_architecture)#Read_After_Write_.28RAW.29) 的数据冒险(数据冲突)。有一些办法可以解决这个问题，但是我们会利用之后的机会来稍稍重构它(代码)，通过使用一个含有 ToDo id 的数组来进行单次更新。请注意如果我们使用像索引数据库这样的更加合适的数据存储，就不会发生这样的问题了。不过我们正在努力减少转换工作(minimize the conversion effort)：
-
+5. save 方法提出了新的挑战：因为它依赖了两个异步操作（get 和 set），这两个操作每次都会操作整个 JSON 存储，在对一个以上的 ToDos 进行任何一种批量操作都会造成称之为 [Read-After-Write][] 的数据冒险(数据冲突)。有一些办法可以解决这个问题，但是我们会利用之后的机会来稍稍重构它(代码)，通过使用一个含有 ToDo id 的数组来进行单次更新。请注意如果我们使用像索引数据库这样的更加合适的数据存储，就不会发生这样的问题了。不过我们正在努力减少转换工作(minimize the conversion effort)(TODO: 这段语句不通)：  
    ```javascript
    Store.prototype.save = function (id, updateData, callback) {
 
@@ -335,61 +329,59 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
 6. 我们也需要改写客户端的 save 方法，使它能够在一次调用中包含所有的 ID。(it can include all IDs in one call)
 
-   * a. `controller.js` 中 toggleComplete 的 update 方法：
+   a. `controller.js` 中 toggleComplete 的 update 方法：  
+   ```javascript
+   Controller.prototype.toggleComplete = function (ids, checkbox, silent) {
+     var completed = checkbox.checked ? 1 : 0;
 
-     ```javascript
-     Controller.prototype.toggleComplete = function (ids, checkbox, silent) {
-       var completed = checkbox.checked ? 1 : 0;
-
-       this.model.update(ids, { completed: completed }, function () {
-         if ( ids.constructor != Array ) {
-           ids = [ ids ];
-         }
-
-         ids.forEach( function(id) {
-
-           var listItem = $$('[data-id="' + id + '"]');
-           
-           if (!listItem) {
-             return;
-           }
-
-           listItem.className = completed ? 'completed' : '';
-           
-           // In case it was toggled from an event and not by clicking the checkbox
-           listItem.querySelector('input').checked = completed;
-         });
-
-         if (!silent) {
-           this._filter();
-         }
-       }.bind(this));
-     };
-     ```
-
-   * b. `controller.js` 中 toggleAll 的 update 方法：
-
-     ```javascript
-     Controller.prototype.toggleAll = function (e) {
-       var completed = e.target.checked ? 1 : 0;
-       var query = 0;
-
-       if (completed === 0) {
-         query = 1;
+     this.model.update(ids, { completed: completed }, function () {
+       if ( ids.constructor != Array ) {
+         ids = [ ids ];
        }
 
-       this.model.read({ completed: query }, function (data) {
-         var ids = [];
-         data.forEach(function (item) {
-           ids.push(item.id);
-           /* this.toggleComplete(item.id, e.target, true); */
-         }.bind(this));
-         this.toggleComplete(ids, e.target, false);
+       ids.forEach( function(id) {
+
+         var listItem = $$('[data-id="' + id + '"]');
+           
+         if (!listItem) {
+           return;
+         }
+
+         listItem.className = completed ? 'completed' : '';
+           
+         // In case it was toggled from an event and not by clicking the checkbox
+         listItem.querySelector('input').checked = completed;
+       });
+
+       if (!silent) {
+         this._filter();
+       }
+     }.bind(this));
+   };
+   ```
+
+   b. `controller.js` 中 toggleAll 的 update 方法：  
+   ```javascript
+   Controller.prototype.toggleAll = function (e) {
+     var completed = e.target.checked ? 1 : 0;
+     var query = 0;
+
+     if (completed === 0) {
+       query = 1;
+     }
+
+     this.model.read({ completed: query }, function (data) {
+       var ids = [];
+       data.forEach(function (item) {
+         ids.push(item.id);
+         /* this.toggleComplete(item.id, e.target, true); */
        }.bind(this));
+       this.toggleComplete(ids, e.target, false);
+     }.bind(this));
        
-       this._filter();
-     };
-     ```
+     this._filter();
+   };
+   ```
 
 7. 现在让我们来修复 ToDoMVC 代码中的两个小 bug，当使用异步存储时它们就会出现：
 
@@ -1244,3 +1236,5 @@ Chrome 打包应用平台要求你的应用必须完全遵从内容安全政策�
 [10] https://github.com/GoogleChrome/apps-resource-loader#readme  
 [11] http://developer.chrome.com/trunk/apps/fileSystem.html#method-restoreEntry  
 [12] http://www.google.com/intl/en/chrome/demos/speech.html  
+
+[Read-After-Write]: http://en.wikipedia.org/wiki/Hazard_(computer_architecture)#Read_After_Write_.28RAW.29
