@@ -385,125 +385,119 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
 7. 现在让我们来修复 ToDoMVC 代码中的两个小 bug，当使用异步存储时它们就会出现：
 
-   * c. 在 `controller.js` 中的 removeItem 方法，把调用 _filter 的语句移动到回调函数里：
+   c. 在 `controller.js` 中的 removeItem 方法，把调用 _filter 的语句移动到回调函数里：  
+   ```javascript
+   Controller.prototype.removeItem = function (id) {
+     this.model.remove(id, function () {
+       this.$todoList.removeChild($$('[data-id="' + id + '"]'));
+       this._filter();
+     }.bind(this));
 
-     ```javascript
-     Controller.prototype.removeItem = function (id) {
-       this.model.remove(id, function () {
-         this.$todoList.removeChild($$('[data-id="' + id + '"]'));
-         this._filter();
-       }.bind(this));
+     /* this._filter(); */
+   };
+   ```
 
-       /* this._filter(); */
+   d. 还是在 `controller.js` 中，使 _updateCount 变为异步执行：  
+   ```javascript
+   Controller.prototype._updateCount = function () {
+     /* var todos = this.model.getCount(); */
+     this.model.getCount(function(todos) {
+
+       this.$todoItemCounter.innerHTML = this.view.itemCounter(todos.active);
+         
+       this.$clearCompleted.innerHTML = this.view.clearCompletedButton(todos.completed);
+       this.$clearCompleted.style.display = todos.completed > 0 ? 'block' : 'none';
+         
+       this.$toggleAll.checked = todos.completed === todos.total;
+         
+       this._toggleFrame(todos);
+     }.bind(this));
+   };
+   ```
+
+   e. 现在 `model.js` 中对应的 getCount 方法需要接受回调函数：  
+   ```javascript
+   Model.prototype.getCount = function (callback) {
+     var todos = {
+       active: 0,
+       completed: 0,
+       total: 0
      };
-     ```
 
-   * d. 还是在 `controller.js` 中，使 _updateCount 变为异步执行：
+     this.storage.findAll(function (data) {
+       data.each(function (todo) {
+         if (todo.completed === 1) {
+           todos.completed++;
+         } else {
+           todos.active++;
+         }
 
-     ```javascript
-     Controller.prototype._updateCount = function () {
-       /* var todos = this.model.getCount(); */
-       this.model.getCount(function(todos) {
-
-         this.$todoItemCounter.innerHTML = this.view.itemCounter(todos.active);
-         
-         this.$clearCompleted.innerHTML = this.view.clearCompletedButton(todos.completed);
-         this.$clearCompleted.style.display = todos.completed > 0 ? 'block' : 'none';
-         
-         this.$toggleAll.checked = todos.completed === todos.total;
-         
-         this._toggleFrame(todos);
-       }.bind(this));
-     };
-     ```
-
-   * e. 现在 `model.js` 中对应的 getCount 方法需要接受回调函数：
-
-     ```javascript
-     Model.prototype.getCount = function (callback) {
-       var todos = {
-         active: 0,
-         completed: 0,
-         total: 0
-       };
-
-       this.storage.findAll(function (data) {
-         data.each(function (todo) {
-           if (todo.completed === 1) {
-             todos.completed++;
-           } else {
-             todos.active++;
-           }
-
-           todos.total++;
-         });
-         if (callback) callback(todos);
+         todos.total++;
        });
+       if (callback) callback(todos);
+     });
        
-       /* return todos; */
-     };
-     ```
+     /* return todos; */
+   };
+   ```
 
 8. 我们快要完成了。如果现在重新加载应用，你能够插入新的 Todo 了，但是你还不能移除它们。现在让我们来修复 `store.js` 中的 remove 方法。同样，之前在 save 方法中提到的数据冒险(数据冲突)问题也存在于这里，因此我们需要改写 remove 方法使其允许批量操作：
 
-   * f. 修复 `store.js` 中的 remove 方法：
+   f. 修复 `store.js` 中的 remove 方法：  
+   ```javascript
+   Store.prototype.remove = function (id, callback) {
+     chrome.storage.local.get(this._dbName, function(storage) {
+       /* var data = JSON.parse(localStorage[this._dbName]); */
+       var data = storage[this._dbName];
+       var todos = data.todos;
 
-     ```javascript
-     Store.prototype.remove = function (id, callback) {
-       chrome.storage.local.get(this._dbName, function(storage) {
-         /* var data = JSON.parse(localStorage[this._dbName]); */
-         var data = storage[this._dbName];
-         var todos = data.todos;
-
-         var ids = [].concat(id);
-         ids.forEach( function(id) {
-           for (var i = 0; i < todos.length; i++) {
-             if (todos[i].id == id) {
-               todos.splice(i, 1);
-               break;
-             }
+       var ids = [].concat(id);
+       ids.forEach( function(id) {
+         for (var i = 0; i < todos.length; i++) {
+           if (todos[i].id == id) {
+             todos.splice(i, 1);
+             break;
            }
-         });
+         }
+       });
 
        /* localStorage[this._dbName] = JSON.stringify(data);
        callback.call(this, JSON.parse(localStorage[this._dbName]).todos); */
-         chrome.storage.local.set(storage, function() {
-           callback.call(this, todos);
-         }.bind(this));
+       chrome.storage.local.set(storage, function() {
+         callback.call(this, todos);
        }.bind(this));
-     };
-     ```
+     }.bind(this));
+   };
+   ```
 
-   * g. 现在改写 `controller.js` 中的 removeCompletedItems 使其对所有的 id 调用一次 removeItem：
-
-     ```javascript
-     Controller.prototype.removeCompletedItems = function () {
-       this.model.read({ completed: 1 }, function (data) {
-         var ids = [];
-         data.forEach(function (item) {
-           ids.push(item.id);
-           /* this.removeItem(item.id); */
-         }.bind(this));
-         this.removeItem(ids);
+   g. 现在改写 `controller.js` 中的 removeCompletedItems 使其对所有的 id 调用一次 removeItem：  
+   ```javascript
+   Controller.prototype.removeCompletedItems = function () {
+     this.model.read({ completed: 1 }, function (data) {
+       var ids = [];
+       data.forEach(function (item) {
+         ids.push(item.id);
+         /* this.removeItem(item.id); */
        }.bind(this));
+       this.removeItem(ids);
+     }.bind(this));
 
+     this._filter();
+   };
+   ```
+
+   h. 最后改写 `controller.js` 中的 removeItem 以支持一次性从 DOM 移除多个条目：  
+   ```javascript
+   Controller.prototype.removeItem = function (id) {
+     this.model.remove(id, function () {
+       var ids = [].concat(id);
+       ids.forEach( function(id) {
+         this.$todoList.removeChild($$('[data-id="' + id + '"]'));
+       }.bind(this));
        this._filter();
-     };
-     ```
-
-   * h. 最后改写 `controller.js` 中的 removeItem 以支持一次性从 DOM 移除多个条目：
-
-     ```javascript
-     Controller.prototype.removeItem = function (id) {
-       this.model.remove(id, function () {
-         var ids = [].concat(id);
-         ids.forEach( function(id) {
-           this.$todoList.removeChild($$('[data-id="' + id + '"]'));
-         }.bind(this));
-         this._filter();
-       }.bind(this));
-     };
-     ```
+     }.bind(this));
+   };
+   ```
 
 9. 完成了！重新加载你的应用（右击，重新加载应用），好好享受吧！
 
@@ -535,16 +529,14 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
 ### Part 1 - 提醒 ###
 
-1. 在 `manifest.json` 文件中，加入 "alarms" 权限：
-
+1. 在 `manifest.json` 文件中，加入 "alarms" 权限：  
    ```
    ···
      "permissions": ["storage", "alarms"],
    ···
    ```
 
-2. 在 `background.js` 中，加入 onAlarm 监听器，目前，每当 storage 中有一个 To Do 的项目时向控制台发送一个 log 消息即可：
-
+2. 在 `background.js` 中，加入 onAlarm 监听器，目前，每当 storage 中有一个 To Do 的项目时向控制台发送一个 log 消息即可：  
    ```javascript
    ···
    chrome.app.runtime.onLaunched.addListener(function() {
@@ -559,8 +551,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
    });
    ```
 
-3. 在 `index.html` 中，添加一个 "Activate alarm" 按钮并引入我们之后要创建的脚本：
-
+3. 在 `index.html` 中，添加一个 "Activate alarm" 按钮并引入我们之后要创建的脚本：  
    ```html
    ···
      <footer id="info">
@@ -579,8 +570,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
 4. 创建一个新的脚本 js/alarms.js：
 
-   * 添加 checkAlarm, createAlarm, cancelAlarm 和 toggleAlarm 方法：
-
+   * 添加 checkAlarm, createAlarm, cancelAlarm 和 toggleAlarm 方法：  
    ```javascript
    (function () {
      'use strict';
@@ -633,6 +623,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
    ### 注意： ###
 
    * 观察调用 chrome.alarms.create 时的参数，这些非常小的值（0.1 of a minute） 只是为了用来测试。在发布的应用中，这些值不会被接受，它们会被四舍五入到接近 1 分钟。在你的测试环境中，一个简单的警告被发送到了控制台 - 你可以忽略它。
+   * 当日志信息被发送到事件（背景）页的控制台中（参见上面的第 2 步），你需要检查背景页来查看那个日志信息：
        打开开发者工具（在应用窗口上右击，点击**检查背景页**，选择控制台标签）。每当你激活了一个提醒，你应该会在控制台里看到日志信息 "rings" 被显示出来。
 
 ### part 2 - 通知 ###
@@ -641,8 +632,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
 ![step_3_1](step_3_1.png)
 
-1. 在 `manifest.json` 中，加入 "notifications" 权限：
-
+1. 在 `manifest.json` 中，加入 "notifications" 权限：  
    ```
    ···
      "permissions": ["storage", "alarms", "notifications"],
@@ -650,8 +640,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
    ```
 
 2. 在 `background.js` 中：
-   * 把 chrome.app.window.create 的调用移动到一个方法中，为了让我们可以重用它：
-
+   * 把 chrome.app.window.create 的调用移动到一个方法中，为了让我们可以重用它：  
      ```javascript
      ...
      function launch() {
@@ -674,8 +663,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
      ...
      ```
 
-   * 创建一个 showNotification 方法（注意下面的样例代码关联了 icon_128.png。如果你希望你的通知拥有一个图标，记得也把图标从作弊代码(TODO: cheat code)复制过来或创建一个你自己的图标）：
-   
+   * 创建一个 showNotification 方法（注意下面的样例代码关联了 icon_128.png。如果你希望你的通知拥有一个图标，记得也把图标从作弊代码(TODO: cheat code)复制过来或创建一个你自己的图标）：  
      ```javascript
      ...
      var dbName = 'todos-vanillajs';
@@ -715,8 +703,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
      ...
      ```
 
-   * 改写 onAlarm 监听器，把向控制台输出简单的新提醒信息变成存储数据并调用 showNotification：
-
+   * 改写 onAlarm 监听器，把向控制台输出简单的新提醒信息变成存储数据并调用 showNotification：  
      ```javascript
      ...
      chrome.alarms.onAlarm.addListener(function( alarm ) {
@@ -751,14 +738,14 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
 
 我们现在要改写我们的例子让其能够在 ToDo 内容中搜索网址，当找到搜索结果时添加一个链接。当点击该链接时将用一个 webview 打开一个新的应用窗口（不是浏览器标签）来展示内容。
 
-1. 在 `manifest.json` 中，加入 "webview" 权限：
+1. 在 `manifest.json` 中，加入 "webview" 权限：  
    ```
    ···
      "permissions": ["storage", "alarms", "notifications", "webview"],
    ···
    ```
 
-2. 使用一个简单的 `<webview>` 标签创建一个新文件 `webview.html`：
+2. 使用一个简单的 `<webview>` 标签创建一个新文件 `webview.html`：  
    ```html  
    <!DOCTYPE html>
    <html>
@@ -771,9 +758,8 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
    </html>
    ```
 
-3. 在 `controller.js` 中：
-   
-   * 添加一个方法用来解析 To Do 内容中的链接地址。一旦找到地址，用一个锚点来替换它：
+3. 在 `controller.js` 中：  
+   * 添加一个方法用来解析 To Do 内容中的链接地址。一旦找到地址，用一个锚点来替换它：  
      ```javascript
      Controller.prototype._parseForURLs = function (text) {
        var re = /(https?:\/\/[^\s"<>,]+)/g;
@@ -781,7 +767,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
      };
     ```
 
-   * 添加一个方法来打开一个带有 webview 的新窗口并给 webview.src 设置一个地址：
+   * 添加一个方法来打开一个带有 webview 的新窗口并给 webview.src 设置一个地址：  
      ```javascript
      Controller.prototype._doShowUrl = function(e) {
        // only applies to elements with data-src attributes
@@ -809,7 +795,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
      };
      ```
 
-   * 每当显示代办项(TODO: items)的时候进行链接解析：
+   * 每当显示代办项(TODO: items)的时候进行链接解析：  
      ```javascript
      /**
       * An event to fire on load. Will get all items and display them in the
@@ -843,7 +829,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
      };
      ```
 
-   * 解析编辑项中的链接。同样的，修复代码让其使用 input 元素的 innerText 来代替它的 innerHTML：
+   * 解析编辑项中的链接。同样的，修复代码让其使用 input 元素的 innerText 来代替它的 innerHTML：  
      ```javascript
      Controller.prototype.editItem = function (id, label) {
        ...
@@ -865,7 +851,7 @@ Chrome 应用拥有一个等价的异步存储来直接存放对象，避免了�
        ...
      ```
 
-   * 最后，在 Controller 构造器中添加一个点击事件监听器，当用户点击链接时调用 doShowUrl 方法：
+   * 最后，在 Controller 构造器中添加一个点击事件监听器，当用户点击链接时调用 doShowUrl 方法：  
      ```javascript
      function Controller(model, view) {
        this.model = model;  
@@ -911,8 +897,7 @@ Chrome 打包应用平台要求你的应用必须完全遵从内容安全政策�
 
 让我们改写我们的应用来查找 To Do 内容中的图片链接。如果地址看上去像一个图片（以 .png, .jpg, .svg 或 .gif 结尾），我们会下载该图片并将其作为缩略图放在锚点中显示在一侧。
 
-1. 在 `manifest.json` 中，加入 "`<all_url>`" 权限。在一个 Chrome 打包应用中你可以让 XMLRequest 请求发向任意地址，只要你在 manifest 中把该域名设为白名单。我们不设置指定的域名，而是要求开启访问 "<all_urls>"（所有地址）的权限，是因为我们无法提前知道使用我们应用的用户将会在 To Do 的内容中输入什么图片地址：
-
+1. 在 `manifest.json` 中，加入 "`<all_url>`" 权限。在一个 Chrome 打包应用中你可以让 XMLRequest 请求发向任意地址，只要你在 manifest 中把该域名设为白名单。我们不设置指定的域名，而是要求开启访问 "<all_urls>"（所有地址）的权限，是因为我们无法提前知道使用我们应用的用户将会在 To Do 的内容中输入什么图片地址：  
    ```
    ···
      "permissions": ["storage", "alarms",
